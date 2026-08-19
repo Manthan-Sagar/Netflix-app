@@ -1,23 +1,23 @@
 {
 	"folders": [
 		{
-			"name": "Root Project",
+			"name": "netflix-app-root",
 			"path": "."
 		},
 		{
-			"name": "Content Service",
+			"name": "content-service",
 			"path": "content-service"
 		},
 		{
-			"name": "Encoding Service",
+			"name": "encoding-service",
 			"path": "encoding-service"
 		},
 		{
-			"name": "Streaming Service",
+			"name": "streaming-service",
 			"path": "streaming-service"
 		},
 		{
-			"name": "Video Service",
+			"name": "video-service",
 			"path": "video-service"
 		}
 	],
