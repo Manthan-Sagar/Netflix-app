@@ -1,0 +1,32 @@
+# Target directories (compiled output)
+**/target/
+**/*.class
+
+# Log files
+*.log
+**/logs/
+
+# IDE and Project files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package Manager & Build Tool caches
+.mvn/wrapper/maven-wrapper.jar
+.gradle/
+build/
+
+# Local configuration files
+.env
+.env.local
+.env.*.local

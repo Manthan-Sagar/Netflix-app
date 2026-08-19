@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"name": "Root Project",
+			"path": "."
+		},
+		{
+			"name": "Content Service",
+			"path": "content-service"
+		},
+		{
+			"name": "Encoding Service",
+			"path": "encoding-service"
+		},
+		{
+			"name": "Streaming Service",
+			"path": "streaming-service"
+		},
+		{
+			"name": "Video Service",
+			"path": "video-service"
+		}
+	],
+	"settings": {}
+}
