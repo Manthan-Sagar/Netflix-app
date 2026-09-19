@@ -26,9 +26,34 @@ Thumbs.db
 .gradle/
 build/
 
-# Local configuration files
+# Local configuration files & Secrets
 .env
-.env.local
-.env.*.local
-*.csv
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+credentials*
 
+# Media files (prevent accidental commit of heavy test videos/streams)
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.wmv
+*.flv
+*.ts
+*.m3u8
+
+# Temp encoding and processing directories
+temp/
+**/temp/
+**/temp/**
+
+# Data files & volumes
+*.csv
+mysql-data/
+data/

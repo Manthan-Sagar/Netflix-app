@@ -2,7 +2,7 @@ spring:
   application:
     name: video-service
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -20,7 +20,7 @@ aws:
   secret-key: ${AWS_SECRET_KEY:YOUR_AWS_SECRET_KEY}
   region: ${AWS_REGION:YOUR_REGION}
   s3:
-    bucket-name: ${AWS_BUCKET_NAME:netflix-streaming-videos-082499810116-eu-north-1-an}
+    bucket-name: ${AWS_BUCKET_NAME:netflix-streaming-videos}
 
 management:
   endpoints:

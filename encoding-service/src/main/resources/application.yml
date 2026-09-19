@@ -2,7 +2,7 @@ spring:
   application:
     name: encoding-service
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: encoding-service-group
       auto-offset-reset: earliest

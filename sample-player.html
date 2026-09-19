@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netflix HLS Stream Player — Microservices Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --netflix-red: #E50914;
+      --netflix-black: #141414;
+      --netflix-card: #1f1f1f;
+      --netflix-border: rgba(255, 255, 255, 0.1);
+      --netflix-text: #FFFFFF;
+      --netflix-muted: #AAAAAA;
+      --netflix-accent: #B81D24;
+      --success-green: #46d369;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(circle at top, #221f1f 0%, #0e0e0e 100%);
+      color: var(--netflix-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--netflix-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--netflix-red);
+      text-transform: uppercase;
+    }
+
+    .brand-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      background: rgba(229, 9, 20, 0.15);
+      border: 1px solid var(--netflix-red);
+      border-radius: 9999px;
+      color: #ff6b72;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--netflix-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success-green);
+      box-shadow: 0 0 8px var(--success-green);
+    }
+
+    main {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--netflix-card);
+      border: 1px solid var(--netflix-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--netflix-muted);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #121212;
+      border: 1px solid var(--netflix-border);
+      color: var(--netflix-text);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--netflix-red);
+      box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+    }
+
+    button.btn-primary {
+      background: var(--netflix-red);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+      height: 44px;
+    }
+
+    button.btn-primary:hover {
+      background: var(--netflix-accent);
+    }
+
+    button.btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .quick-bar {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--netflix-muted);
+    }
+
+    .quick-chip {
+      background: #2a2a2a;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .quick-chip:hover {
+      border-color: var(--netflix-red);
+      color: #fff;
+    }
+
+    .player-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--netflix-border);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .video-overlay {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .quality-select {
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+
+    .stats-card {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .stat-item {
+      background: #141414;
+      padding: 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--netflix-border);
+    }
+
+    .stat-label {
+      color: var(--netflix-muted);
+      margin-bottom: 0.25rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    #logBox {
+      background: #0a0a0a;
+      border-radius: 8px;
+      border: 1px solid var(--netflix-border);
+      padding: 0.75rem 1rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #888;
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">Netflix</div>
+      <div class="brand-tag">HLS Player</div>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      <span>Adaptive Bitrate (HLS)</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stream Source Controller -->
+    <div class="card">
+      <div class="controls-grid">
+        <div class="input-group">
+          <label for="streamUrl">Master Playlist URL (.m3u8) or Movie ID:</label>
+          <input
+            type="text"
+            id="streamUrl"
+            placeholder="e.g., http://localhost:8084/api/v1/stream/YOUR_MOVIE_ID or https://.../master.m3u8"
+          />
+        </div>
+        <button class="btn-primary" id="loadBtn" onclick="loadStream()">Load & Play</button>
+      </div>
+
+      <div class="quick-bar">
+        <span>Quick Test Options:</span>
+        <div class="quick-chip" onclick="setSampleMovieId()">Use Local Stream API (/api/v1/stream/:id)</div>
+        <div class="quick-chip" onclick="setPublicTestStream()">Use Apple Public HLS Demo Stream</div>
+      </div>
+    </div>
+
+    <!-- Video Player Display -->
+    <div class="player-container">
+      <div class="video-overlay">
+        <select class="quality-select" id="qualitySelect" onchange="changeQuality(this.value)">
+          <option value="-1">Quality: Auto (ABR)</option>
+        </select>
+      </div>
+      <video id="videoPlayer" controls playsinline></video>
+    </div>
+
+    <!-- Stream Metrics & Telemetry -->
+    <div class="card stats-card">
+      <div class="stat-item">
+        <div class="stat-label">Current Resolution</div>
+        <div class="stat-value" id="statResolution">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Estimated Bandwidth</div>
+        <div class="stat-value" id="statBandwidth">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Buffer Length</div>
+        <div class="stat-value" id="statBuffer">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Playback State</div>
+        <div class="stat-value" id="statState">Idle</div>
+      </div>
+    </div>
+
+    <!-- Player Event Log -->
+    <div class="card">
+      <label style="display:block; margin-bottom: 0.5rem;">Player Telemetry Log:</label>
+      <div id="logBox">[Ready] Enter an HLS stream URL or Movie ID to begin testing.</div>
+    </div>
+  </main>
+
+  <footer>
+    Netflix Microservices Architecture • Content Service (8081) • Video Service (8082) • Encoding Service (8083) • Streaming Service (8084)
+  </footer>
+
+  <script>
+    const video = document.getElementById('videoPlayer');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const logBox = document.getElementById('logBox');
+    let hls = null;
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logBox.innerText = `[${time}] ${msg}\n` + logBox.innerText;
+    }
+
+    async function loadStream() {
+      const input = document.getElementById('streamUrl').value.trim();
+      if (!input) {
+        alert('Please enter a valid Stream URL or Movie ID');
+        return;
+      }
+
+      let m3u8Url = input;
+
+      // If input looks like an endpoint or UUID/Movie ID, resolve it
+      if (!input.includes('.m3u8')) {
+        let endpoint = input;
+        if (!input.startsWith('http://') && !input.startsWith('https://')) {
+          endpoint = `http://localhost:8084/api/v1/stream/${input}`;
+        }
+        log(`Resolving streaming URL from: ${endpoint}`);
+        try {
+          const res = await fetch(endpoint);
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          const data = await res.json();
+          m3u8Url = data.streamingUrl;
+          log(`Resolved Master Playlist URL: ${m3u8Url}`);
+        } catch (err) {
+          log(`Failed to fetch streaming URL: ${err.message}. Trying direct input...`);
+          m3u8Url = input;
+        }
+      }
+
+      playHLS(m3u8Url);
+    }
+
+    function playHLS(url) {
+      log(`Initializing HLS for: ${url}`);
+      document.getElementById('statState').innerText = 'Loading...';
+
+      if (hls) {
+        hls.destroy();
+      }
+
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 90
+        });
+
+        hls.loadSource(url);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+          log(`Manifest parsed. Available qualities: ${data.levels.length}`);
+          document.getElementById('statState').innerText = 'Ready';
+          populateQualityLevels(data.levels);
+          video.play().catch(() => log('Autoplay prevented; click Play on the video.'));
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+          const level = hls.levels[data.level];
+          if (level) {
+            document.getElementById('statResolution').innerText = `${level.width}x${level.height} (${Math.round(level.bitrate / 1000)} kbps)`;
+            log(`Switched to quality level: ${level.height}p`);
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, function (event, data) {
+          log(`HLS Error: ${data.details} (${data.fatal ? 'FATAL' : 'recoverable'})`);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                log('Fatal network error encountered, attempting recovery...');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                log('Fatal media error encountered, recovering media...');
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                document.getElementById('statState').innerText = 'Error';
+                break;
+            }
+          }
+        });
+
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native Safari HLS support
+        video.src = url;
+        video.addEventListener('loadedmetadata', function () {
+          video.play();
+        });
+        log('Playing via Safari native HLS');
+      } else {
+        alert('HLS playback is not supported in this browser.');
+      }
+    }
+
+    function populateQualityLevels(levels) {
+      qualitySelect.innerHTML = '<option value="-1">Quality: Auto (ABR)</option>';
+      levels.forEach((level, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = `${level.height}p (${Math.round(level.bitrate / 1000)} kbps)`;
+        qualitySelect.appendChild(opt);
+      });
+    }
+
+    function changeQuality(idx) {
+      if (!hls) return;
+      hls.currentLevel = parseInt(idx, 10);
+      log(`Quality set to: ${idx === '-1' ? 'Auto (ABR)' : hls.levels[idx].height + 'p'}`);
+    }
+
+    // Telemetry stats polling
+    setInterval(() => {
+      if (hls && video) {
+        if (hls.bandwidthEstimate) {
+          document.getElementById('statBandwidth').innerText = `${(hls.bandwidthEstimate / (1024 * 1024)).toFixed(2)} Mbps`;
+        }
+        if (video.buffered && video.buffered.length > 0) {
+          const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+          const duration = video.currentTime;
+          document.getElementById('statBuffer').innerText = `${Math.max(0, bufferedEnd - duration).toFixed(1)}s`;
+        }
+        if (!video.paused && !video.ended) {
+          document.getElementById('statState').innerText = 'Playing';
+        } else if (video.paused) {
+          document.getElementById('statState').innerText = 'Paused';
+        }
+      }
+    }, 1000);
+
+    function setSampleMovieId() {
+      document.getElementById('streamUrl').value = 'http://localhost:8084/api/v1/stream/<MOVIE_ID>';
+    }
+
+    function setPublicTestStream() {
+      document.getElementById('streamUrl').value = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+      loadStream();
+    }
+  </script>
+</body>
+</html>
