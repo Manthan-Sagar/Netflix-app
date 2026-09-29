@@ -37,6 +37,8 @@ build/
 *.cer
 *.crt
 credentials*
+.postman/
+postman/
 
 # Media files (prevent accidental commit of heavy test videos/streams)
 *.mp4
