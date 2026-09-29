@@ -35,14 +35,15 @@ public class StreamingService {
     @Value("${aws.s3.presigned-url-expiry}")
     private long presignedUrlExpiry;
 
+    @Value("${server.port:8084}")
+    private int serverPort;
+
     private static final String STREAMING_URL_CACHE_PREFIX = "streaming:url:";
     private static final String MASTER_PLAYLIST_KEY_PREFIX = "streaming:playlist:";
 
     /**
      * Get streaming URL for a movie.
-     * Reads master.m3u8 from S3
-     * Signs every segment URL individually
-     * Returns modified m3u8 as a string
+     * Returns streaming service playlist endpoint URL.
      */
     public StreamingResponse getStreamingUrl(String movieId) {
         log.info("Getting streaming URL for movie: {}", movieId);
@@ -65,13 +66,14 @@ public class StreamingService {
             throw new RuntimeException("Movie not ready for streaming: " + movieId);
         }
 
-        // Generate presigned URL for master playlist
-        String presignedMasterUrl = generatePresignedUrl(playlistKey);
+        // Generate streaming URL pointing to the streaming-service signed playlist endpoint
+        String streamingPlaylistUrl = "http://localhost:" + serverPort
+                + "/api/v1/stream/" + movieId + "/playlist?path=" + playlistKey;
 
         // Cache in Redis for 55 minutes
         redisTemplate.opsForValue().set(
                 cacheKey,
-                presignedMasterUrl,
+                streamingPlaylistUrl,
                 55,
                 TimeUnit.MINUTES
         );
@@ -80,7 +82,7 @@ public class StreamingService {
 
         return new StreamingResponse(
                 movieId,
-                presignedMasterUrl,
+                streamingPlaylistUrl,
                 "1080p, 720p, 480p, 360p",
                 presignedUrlExpiry
         );
@@ -88,19 +90,7 @@ public class StreamingService {
 
     /**
      * Read m3u8 file from S3 and rewrite all
-     * segment URLs with presigned URLs.
-     *
-     * This is the KEY method that makes everything secure.
-     *
-     * Original m3u8:
-     * #EXTM3U
-     * 1080p/playlist.m3u8
-     * 720p/playlist.m3u8
-     *
-     * Rewritten m3u8:
-     * #EXTM3U
-     * https://s3.../1080p/playlist.m3u8?X-Amz-Signature=...
-     * https://s3.../720p/playlist.m3u8?X-Amz-Signature=...
+     * variant and segment URLs.
      */
     public String getSignedPlaylist(String movieId, String playlistPath) {
         log.info("Getting signed playlist for movie: {} path: {}",
@@ -113,19 +103,20 @@ public class StreamingService {
         // Read m3u8 content from S3
         String m3u8Content = readFromS3(playlistPath);
 
-        // Rewrite each line that is a segment or playlist reference
+        // Rewrite each line: variant playlists route through StreamingService, segments get presigned S3 URLs
         String signedContent = rewriteM3u8WithSignedUrls(
-                m3u8Content, basePath);
+                movieId, m3u8Content, basePath);
 
         return signedContent;
     }
 
     /**
-     * Rewrite m3u8 content replacing relative paths
-     * with presigned S3 URLs.
+     * Rewrite m3u8 content:
+     * - Child playlists (.m3u8) point back to StreamingService playlist endpoint
+     * - Segments (.ts) get presigned S3 URLs
      */
     private String rewriteM3u8WithSignedUrls(
-            String m3u8Content, String basePath) {
+            String movieId, String m3u8Content, String basePath) {
 
         StringBuilder rewritten = new StringBuilder();
 
@@ -139,11 +130,16 @@ public class StreamingService {
             }
 
             // This is a segment or playlist reference
-            // Build full S3 key and sign it
             String fullKey = basePath + trimmed;
-            String signedUrl = generatePresignedUrl(fullKey);
 
-            rewritten.append(signedUrl).append("\n");
+            if (trimmed.endsWith(".m3u8")) {
+                String variantUrl = "http://localhost:" + serverPort
+                        + "/api/v1/stream/" + movieId + "/playlist?path=" + fullKey;
+                rewritten.append(variantUrl).append("\n");
+            } else {
+                String signedUrl = generatePresignedUrl(fullKey);
+                rewritten.append(signedUrl).append("\n");
+            }
         }
 
         return rewritten.toString();

@@ -36,7 +36,7 @@ aws:
 
 # FFmpeg Configuration
 ffmpeg:
-  path: ${FFMPEG_PATH:C:/ffmpeg/bin/ffmpeg.exe}
+  path: ${FFMPEG_PATH:C:/ffmpeg/ffmpeg.exe}
 
 # Temp directory for encoding
 encoding:
